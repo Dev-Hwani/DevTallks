@@ -1,6 +1,7 @@
 package com.mysite.devtallks.profile.controller;
 
-import com.mysite.devtallks.profile.entity.Profile;
+import com.mysite.devtallks.profile.dto.ProfileRequestDTO;
+import com.mysite.devtallks.profile.dto.ProfileResponseDTO;
 import com.mysite.devtallks.profile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,33 +18,32 @@ public class ProfileController {
      * 프로필 조회
      */
     @GetMapping
-    public ResponseEntity<Profile> getProfile(@PathVariable Long memberId) {
-        Profile profile = profileService.getProfile(memberId);
-        return ResponseEntity.ok(profile);
+    public ResponseEntity<ProfileResponseDTO> getProfile(@PathVariable Long memberId) {
+        ProfileResponseDTO response = profileService.getProfileByMember(memberId);
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 프로필 수정 (bio)
      */
     @PutMapping
-    public ResponseEntity<Profile> updateProfile(
+    public ResponseEntity<ProfileResponseDTO> updateProfile(
             @PathVariable Long memberId,
-            @RequestParam String bio) {
+            @RequestBody ProfileRequestDTO requestDTO) {
 
-        Profile updatedProfile = profileService.updateProfile(memberId, bio);
-        return ResponseEntity.ok(updatedProfile);
+        ProfileResponseDTO response = profileService.updateProfile(memberId, requestDTO);
+        return ResponseEntity.ok(response);
     }
 
     /**
-     * 프로필 이미지 업로드/수정
+     * 프로필 이미지 수정
      */
     @PostMapping("/image")
-    public ResponseEntity<Profile> updateProfileImage(
+    public ResponseEntity<ProfileResponseDTO> updateProfileImage(
             @PathVariable Long memberId,
-            @RequestParam String imageUrl) {
+            @RequestBody ProfileRequestDTO requestDTO) {
 
-        Profile updatedProfile = profileService.updateProfileImage(memberId, imageUrl);
-        return ResponseEntity.ok(updatedProfile);
+        ProfileResponseDTO response = profileService.updateProfileImage(memberId, requestDTO.getImageUrl());
+        return ResponseEntity.ok(response);
     }
 }
-

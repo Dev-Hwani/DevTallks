@@ -2,6 +2,8 @@ package com.mysite.devtallks.profile.service;
 
 import com.mysite.devtallks.member.entity.Member;
 import com.mysite.devtallks.member.repository.MemberRepository;
+import com.mysite.devtallks.profile.dto.ProfileRequestDTO;
+import com.mysite.devtallks.profile.dto.ProfileResponseDTO;
 import com.mysite.devtallks.profile.entity.Profile;
 import com.mysite.devtallks.profile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,56 +19,85 @@ public class ProfileService {
     private final ProfileRepository profileRepository;
     private final MemberRepository memberRepository;
 
+    // ==========================================
+    // 프로필 생성
+    // ==========================================
     @Transactional
-    public Profile createProfile(Long memberId, String bio, String imageUrl) {
+    public ProfileResponseDTO createProfile(Long memberId, ProfileRequestDTO dto) {
+
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
+
         Profile profile = Profile.builder()
                 .member(member)
-                .bio(bio)
-                .imageUrl(imageUrl)
+                .bio(dto.getBio())
+                .imageUrl(dto.getImageUrl())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
-        return profileRepository.save(profile);
+
+        profileRepository.save(profile);
+        return toDTO(profile);
     }
 
+    // ==========================================
+    // 프로필 정보 수정 (bio)
+    // ==========================================
     @Transactional
-    public Profile updateProfile(Long memberId, String bio) {
-        Profile profile = getProfile(memberId);
-        profile.setBio(bio);
+    public ProfileResponseDTO updateProfile(Long memberId, ProfileRequestDTO dto) {
+
+        Profile profile = getLatestProfile(memberId);
+        profile.setBio(dto.getBio());
         profile.setUpdatedAt(LocalDateTime.now());
-        return profileRepository.save(profile);
+
+        profileRepository.save(profile);
+        return toDTO(profile);
     }
 
-    @Transactional(readOnly = true)
-    public Profile getProfileByMember(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
-        return profileRepository.findByMember(member)
-                .orElseThrow(() -> new IllegalArgumentException("프로필이 존재하지 않습니다."));
-    }
-    
-    @Transactional(readOnly = true)
-    public Profile getProfile(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
-
-        return profileRepository.findByMember(member)
-                .orElse(Profile.builder()
-                        .member(member)
-                        .bio("")
-                        .imageUrl(null)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build());
-    }
-    
+    // ==========================================
+    // 프로필 이미지 수정
+    // ==========================================
     @Transactional
-    public Profile updateProfileImage(Long memberId, String imageUrl) {
-        Profile profile = getProfile(memberId);
+    public ProfileResponseDTO updateProfileImage(Long memberId, String imageUrl) {
+
+        Profile profile = getLatestProfile(memberId);
         profile.setImageUrl(imageUrl);
         profile.setUpdatedAt(LocalDateTime.now());
-        return profileRepository.save(profile);
+
+        profileRepository.save(profile);
+        return toDTO(profile);
+    }
+
+    // ==========================================
+    // 특정 회원 프로필 조회
+    // ==========================================
+    @Transactional(readOnly = true)
+    public ProfileResponseDTO getProfileByMember(Long memberId) {
+        return toDTO(getLatestProfile(memberId));
+    }
+
+    // ==========================================
+    // 가장 최신 프로필 1개 가져오기
+    // ==========================================
+    private Profile getLatestProfile(Long memberId) {
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
+
+        return profileRepository.findTopByMemberOrderByCreatedAtDesc(member)
+                .orElseThrow(() -> new IllegalArgumentException("프로필이 존재하지 않습니다."));
+    }
+
+    // ==========================================
+    // 엔티티 → DTO 변환
+    // ==========================================
+    private ProfileResponseDTO toDTO(Profile profile) {
+
+        return ProfileResponseDTO.builder()
+                .memberId(profile.getMember().getId())
+                .nickname(profile.getMember().getNickname())
+                .bio(profile.getBio())
+                .imageUrl(profile.getImageUrl())
+                .build();
     }
 }
